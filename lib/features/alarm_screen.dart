@@ -1,8 +1,9 @@
-import 'package:albertohanso_app/constants/app_colors.dart';
-import 'package:albertohanso_app/helpers/notification_helper.dart';
+import 'dart:developer';
+import 'dart:io';
+import 'package:alarm/alarm.dart';
+import 'package:alarm/model/volume_settings.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'database_helper.dart';
+import 'package:alarm_app/helper/database_helper.dart';
 
 class AlarmScreen extends StatefulWidget {
   const AlarmScreen({super.key});
@@ -12,8 +13,6 @@ class AlarmScreen extends StatefulWidget {
 }
 
 class _AlarmScreenState extends State<AlarmScreen> {
-  final NotificationHelper _notificationHelper = NotificationHelper();
-
   final List<String> cities = ['Mecca', 'Medina', 'Cairo', 'Istanbul'];
   final List<String> prayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 
@@ -28,7 +27,6 @@ class _AlarmScreenState extends State<AlarmScreen> {
   void initState() {
     super.initState();
     loadAlarmsFromDb();
-    _notificationHelper.initialize();
   }
 
   Future<void> loadAlarmsFromDb() async {
@@ -60,45 +58,59 @@ class _AlarmScreenState extends State<AlarmScreen> {
     }
   }
 
-void addAlarm() async {
-  if (selectedCity != null &&
-      selectedPrayer != null &&
-      selectedDate != null &&
-      selectedTime != null) {
-    final newAlarm = {
-      'city': selectedCity,
-      'prayer': selectedPrayer,
-      'date': selectedDate!.toIso8601String(),
-      'time': selectedTime!.format(context),
-    };
+  Future<void> addAlarm() async {
+    if (selectedCity != null &&
+        selectedPrayer != null &&
+        selectedDate != null &&
+        selectedTime != null) {
+      final alarmDateTime = DateTime(
+        selectedDate!.year,
+        selectedDate!.month,
+        selectedDate!.day,
+        selectedTime!.hour,
+        selectedTime!.minute,
+      );
 
-    // Insert into database
-    await DatabaseHelper().insertAlarm(newAlarm);
-    await loadAlarmsFromDb();
+      final newAlarm = {
+        'city': selectedCity,
+        'prayer': selectedPrayer,
+        'date': selectedDate!.toIso8601String(),
+        'time': selectedTime!.format(context),
+      };
 
-    // ✅ Use the initialized notification helper
-    await _notificationHelper.scheduleNotification(
-      newAlarm.hashCode, // Unique ID
-      'Prayer Time: $selectedPrayer',
-      'It\'s time for $selectedPrayer in $selectedCity',
-      selectedDate!,
-      selectedTime!,
-    );
+      int dbId = await DatabaseHelper().insertAlarm(newAlarm);
+      await loadAlarmsFromDb();
 
-    selectedCity = null;
-    selectedPrayer = null;
-    selectedDate = null;
-    selectedTime = null;
-    setState(() {});
-  } else {
-    Get.snackbar(
-      'Something wrong!',
-      'Please fill all fields..!',
-      backgroundColor: AppColors.cFF444A,
-    );
+      await Alarm.set(
+        alarmSettings: AlarmSettings(
+          id: dbId,
+          dateTime: alarmDateTime,
+          assetAudioPath: 'assets/alarm.mp3',
+          loopAudio: false,
+          vibrate: true,
+          warningNotificationOnKill: Platform.isIOS,
+          androidFullScreenIntent: true,
+          volumeSettings: VolumeSettings.fade(
+            volume: 0.8,
+            fadeDuration: const Duration(seconds: 5),
+            volumeEnforced: true,
+          ),
+          notificationSettings: NotificationSettings(
+            title: 'Alarm for $selectedPrayer',
+            body: 'It\'s time for $selectedPrayer in $selectedCity',
+            stopButton: 'Stop',
+            icon: 'notification_icon',
+          ),
+        ),
+      );
+
+      selectedCity = null;
+      selectedPrayer = null;
+      selectedDate = null;
+      selectedTime = null;
+      setState(() {});
+    }
   }
-}
-
 
   String formatDate(String date) {
     return DateTime.parse(date).toLocal().toString().split(' ')[0];
@@ -183,13 +195,10 @@ void addAlarm() async {
                     child: const Icon(Icons.delete, color: Colors.white),
                   ),
                   onDismissed: (direction) async {
-                    await _notificationHelper.cancelNotification(alarm['id']);
+                    await Alarm.stop(alarm['id']);
                     await DatabaseHelper().deleteAlarm(alarm['id']);
-
                     await loadAlarmsFromDb();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Alarm deleted")),
-                    );
+                    log("Alarm deleted");
                   },
                   child: Card(
                     margin: const EdgeInsets.symmetric(vertical: 8),

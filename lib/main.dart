@@ -1,6 +1,6 @@
 import 'package:alarm/alarm.dart';
+import 'package:alarm_app/features/alarm_screen.dart';
 import 'package:flutter/material.dart';
-import 'features/home_screen.dart';
 import 'helper/notification_helper.dart';
 
 void main() async {
@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Notification App',
       debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
+      home: AlarmScreen(),
     );
   }
 }
