@@ -1,6 +1,7 @@
 import 'package:alarm/alarm.dart';
-import 'package:alarm_app/features/alarm_screen.dart';
+import 'package:alarm_app/prayer_alarm/views/alarm_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'helper/notification_helper.dart';
 
 void main() async {
@@ -16,10 +17,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Notification App',
       debugShowCheckedModeBanner: false,
-      home: AlarmScreen(),
+      home: PrayerAlarmScreen(),
     );
   }
 }
