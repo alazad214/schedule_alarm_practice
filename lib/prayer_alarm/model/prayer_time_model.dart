@@ -29,33 +29,3 @@ class PrayerTimeModel {
     );
   }
 }
-
-class AlarmModel {
-  final String city;
-  final String date;
-  final String prayerName;
-  final bool isEnabled;
-
-  AlarmModel({
-    required this.city,
-    required this.date,
-    required this.prayerName,
-    required this.isEnabled,
-  });
-
-  Map<String, dynamic> toMap() => {
-    'city': city,
-    'date': date,
-    'prayerName': prayerName,
-    'isEnabled': isEnabled ? 1 : 0,
-  };
-
-  factory AlarmModel.fromMap(Map<String, dynamic> map) {
-    return AlarmModel(
-      city: map['city'],
-      date: map['date'],
-      prayerName: map['prayerName'],
-      isEnabled: map['isEnabled'] == 1,
-    );
-  }
-}

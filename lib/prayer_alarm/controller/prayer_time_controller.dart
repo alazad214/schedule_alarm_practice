@@ -41,6 +41,30 @@ class PrayerTimeController extends GetxController {
     updatePrayerTime();
   }
 
+  Future<void> loadAllAlarmStates() async {
+    final newStates = <String, bool>{};
+
+    if (currentPrayerTime.value == null) return;
+
+    final selectedDate = availableDates[selectedDays.value];
+    final dateStr =
+        "${selectedDate.year.toString().padLeft(4, '0')}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}";
+
+    for (var prayerName in currentPrayerTime.value!.times.keys) {
+      bool isEnabled = await _dbHelper.getAlarmState(
+        selectedCity.value,
+        dateStr,
+        prayerName,
+      );
+     final key = "${selectedCity.value}|$dateStr|$prayerName";
+
+      newStates[key] = isEnabled;
+    }
+
+    alarmSwitchStates.assignAll(newStates);
+    alarmSwitchStates.refresh(); // 🔁 force UI to update
+  }
+
   void updateAvailableDates() {
     final today = DateTime.now();
     final filteredDates =
@@ -63,7 +87,7 @@ class PrayerTimeController extends GetxController {
     }
   }
 
-  void updatePrayerTime() {
+  void updatePrayerTime() async {
     if (availableDates.isEmpty || selectedDays.value >= availableDates.length) {
       currentPrayerTime.value = null;
       return;
@@ -83,6 +107,7 @@ class PrayerTimeController extends GetxController {
             times: {},
           ),
     );
+    await loadAllAlarmStates();
   }
 
   void onDateSelected(int index) {
@@ -105,12 +130,30 @@ class PrayerTimeController extends GetxController {
     return await _dbHelper.getAlarmState(city, date, prayerName);
   }
 
-  Future<void> setAlarmState(
-    String city,
-    String date,
-    String prayerName,
-    bool isEnabled,
-  ) async {
-    await _dbHelper.insertOrUpdateAlarm(city, date, prayerName, isEnabled);
-  }
+// PrayerTimeController.dart
+
+// Loads one alarm state from DB and updates the map (called when key not present)
+Future<void> loadAlarmState(String city, String date, String prayerName) async {
+  final isEnabled = await _dbHelper.getAlarmState(city, date, prayerName);
+  final key = "$city|$date|$prayerName";
+
+  alarmSwitchStates[key] = isEnabled;
+  alarmSwitchStates.refresh(); // Important to notify UI listeners
+}
+
+// Saves the alarm state into DB and updates the in-memory map + UI
+Future<void> setAlarmState(
+  String city,
+  String date,
+  String prayerName,
+  bool isEnabled,
+) async {
+  await _dbHelper.insertOrUpdateAlarm(city, date, prayerName, isEnabled);
+  final key = "$city|$date|$prayerName";
+
+  alarmSwitchStates[key] = isEnabled;
+  alarmSwitchStates.refresh(); // Force UI update immediately
+}
+
+
 }

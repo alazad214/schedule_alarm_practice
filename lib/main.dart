@@ -1,5 +1,5 @@
 import 'package:alarm/alarm.dart';
-import 'package:alarm_app/prayer_alarm/views/alarm_screen.dart';
+import 'package:alarm_app/prayer_alarm/views/prayer_alarm_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'helper/notification_helper.dart';
